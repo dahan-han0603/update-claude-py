@@ -1,0 +1,13 @@
+# 스크립트 실행 로그
+claude_update.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.env
+
+# macOS
+.DS_Store
