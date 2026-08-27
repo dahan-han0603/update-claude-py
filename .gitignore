@@ -11,3 +11,7 @@ venv/
 
 # macOS
 .DS_Store
+
+# oh-my-claudecode / Claude Code
+.omc/
+.claude/
