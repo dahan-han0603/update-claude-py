@@ -92,6 +92,15 @@ def detect_install_method(executable_path: str) -> str:
         return "homebrew"
     if ".nvm" in path or ".npm" in path or "/node_modules/" in path:
         return "npm"
+    if "/.local/bin/claude" in path or "/.local/share/claude/" in path:
+        return "native"
+    # 심볼릭 링크가 네이티브 설치 디렉터리를 가리키는 경우 추적
+    try:
+        real_path = str(Path(executable_path).resolve()).lower()
+    except OSError:
+        real_path = path
+    if "/.local/share/claude/" in real_path:
+        return "native"
     return "unknown"
 
 
@@ -167,6 +176,8 @@ def perform_update(method: str, dry_run: bool) -> tuple[bool, str]:
         command = f"npm install -g {NPM_PACKAGE}@latest"
     elif method == "homebrew":
         command = f"brew upgrade --cask {BREW_CASK}"
+    elif method == "native":
+        command = "claude update"
     else:
         return False, (
             "설치 방식을 자동으로 판별하지 못했습니다. "
@@ -182,7 +193,7 @@ def parse_args():
     )
     parser.add_argument(
         "--method",
-        choices=["auto", "npm", "homebrew"],
+        choices=["auto", "npm", "homebrew", "native"],
         default="auto",
         help="설치/업데이트 방식 (기본값: auto)",
     )
@@ -220,7 +231,12 @@ def main() -> int:
             "설치 방식을 자동 판별하지 못했습니다. claude --version 기준으로 점검합니다."
         )
     else:
-        label = {"npm": "npm", "homebrew": "Homebrew", "unknown": "알 수 없음"}[method]
+        label = {
+            "npm": "npm",
+            "homebrew": "Homebrew",
+            "native": "네이티브 설치 프로그램",
+            "unknown": "알 수 없음",
+        }[method]
         logger.info(f"설치 방식: {label}")
 
     current_version = get_current_version(method)
