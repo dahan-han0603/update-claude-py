@@ -10,6 +10,8 @@ from pathlib import Path
 LOG_FILE = "claude_update.log"
 NPM_PACKAGE = "@anthropic-ai/claude-code"
 BREW_CASK = "claude-code"
+DOCS_SETUP_URL = "https://docs.claude.com/en/docs/claude-code/setup"
+DOCS_TROUBLESHOOT_URL = "https://docs.claude.com/en/docs/claude-code/troubleshooting"
 
 
 class ColorFormatter(logging.Formatter):
@@ -288,11 +290,33 @@ def main() -> int:
     updated_version = get_version_from_claude_cli()
     if updated_version:
         logger.info(f"업데이트 후 버전 확인: {updated_version}")
-        if parse_version(updated_version) and parse_version(updated_version) < latest_tuple:
-            logger.warning(
-                "업데이트 후에도 최신 버전보다 낮습니다. PATH 또는 설치 방식을 확인하세요."
-            )
-            return 1
+        updated_tuple = parse_version(updated_version)
+        if updated_tuple and updated_tuple < latest_tuple:
+            if updated_tuple > current_tuple:
+                # 버전은 올랐으나 조회한 최신(주로 npm 레지스트리)에는 못 미침.
+                # 네이티브 설치는 자체 배포 채널이 npm보다 늦어 정상적으로 발생.
+                logger.warning(
+                    f"업데이트되었지만(v{current_version} → v{updated_version}) "
+                    f"조회된 최신 버전(v{latest_version})보다는 낮습니다."
+                )
+                if method == "native":
+                    logger.info(
+                        "네이티브 설치는 자체 배포 채널을 사용해 npm 레지스트리보다 "
+                        "릴리스가 늦을 수 있습니다. 잠시 후 다시 실행하면 따라잡습니다."
+                    )
+                logger.info(f"설치/업데이트 안내: {DOCS_SETUP_URL}")
+            else:
+                # 버전이 전혀 오르지 않음: PATH 충돌 또는 업데이트 미적용.
+                logger.warning(
+                    "업데이트 후에도 버전이 오르지 않았습니다. PATH 또는 설치 방식을 확인하세요."
+                )
+                logger.info(
+                    "여러 개의 claude가 설치되어 있을 수 있습니다. "
+                    "`which -a claude` 로 확인하세요."
+                )
+                logger.info(f"설치 안내: {DOCS_SETUP_URL}")
+                logger.info(f"문제 해결: {DOCS_TROUBLESHOOT_URL}")
+                return 1
 
     logger.info("=== 점검 및 업데이트 프로세스 종료 ===")
     print(f"\n상세 로그는 '{Path(LOG_FILE).absolute()}' 파일에 저장되었습니다.")
